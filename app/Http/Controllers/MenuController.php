@@ -2,31 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\{Menu, Meja, Kategori};
+use App\Models\Menu;
+use App\Models\Kategori;
 use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    public function scanQR($kode_qr)
+    public function index(Request $request)
     {
-        $meja = Meja::where('kode_qr', $kode_qr)
-                    ->where('status', 'tersedia')
-                    ->firstOrFail();
+        // Mengambil nomor meja dari query string (misal: ?meja=M01) dan simpan di session
+        if ($request->has('meja')) {
+            session(['nomor_meja' => $request->meja]);
+        }
 
-        session(['meja_id' => $meja->id, 'nomor_meja' => $meja->nomor_meja]);
-        return redirect()->route('menu.index', $meja->id);
-    }
+        $kategoris = Kategori::with('menus')->get();
+        $menus = Menu::where('status_stok', 'Tersedia')->get();
 
-    public function index($meja_id)
-    {
-        $meja = Meja::findOrFail($meja_id);
-        $kategoris = Kategori::with(['menus' => function ($q) {
-            $q->where('status', 'tersedia')->orderBy('nama_menu');
-        }])->get();
-
-        $keranjang = session('keranjang', []);
-        $totalItem = collect($keranjang)->sum('qty');
-
-        return view('menu', compact('meja', 'kategoris', 'keranjang', 'totalItem'));
+        return view('home', compact('kategoris', 'menus'));
     }
 }

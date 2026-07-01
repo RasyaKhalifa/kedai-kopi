@@ -2,14 +2,18 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Menu extends Model
 {
-    protected $fillable = ['nama_menu', 'harga', 'foto', 'status', 'kategori_id'];
+    use HasFactory;
+
+    protected $table = 'menus'; // atau 'menu' sesuaikan dengan migrasi Anda
+    protected $fillable = ['kategori_id', 'nama_menu', 'harga', 'stok', 'status_stok', 'foto'];
 
     public function kategori()
     {
-        return $this->belongsTo(Kategori::class);
+        return $this->belongsTo(Kategori::class, 'kategori_id');
     }
 }

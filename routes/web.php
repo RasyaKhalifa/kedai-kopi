@@ -1,31 +1,21 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\PesananController;
+use Illuminate\Support\Facades\Route;
 
-// TEST ROUTE
-Route::get('/', function () {
-    return view('home');
-});
+// Menu Sisi Pelanggan
+Route::get('/', [MenuController::class, 'index'])->name('menu.index');
 
-// CUSTOMER ROUTES
+// Keranjang / Cart Belanja
+Route::get('/cart', [PesananController::class, 'cart'])->name('cart.index');
+Route::get('/add-to-cart/{id}', [PesananController::class, 'addToCart'])->name('cart.add');
+Route::patch('/update-cart', [PesananController::class, 'updateCart'])->name('cart.update');
+Route::delete('/remove-from-cart', [PesananController::class, 'removeFromCart'])->name('cart.remove');
 
-// Scan QR → redirect ke menu meja
-Route::get('/meja/{kode_qr}', [MenuController::class, 'scanQR'])->name('scan.qr');
+// Checkout & Penyimpanan Pesanan
+Route::get('/checkout', [PesananController::class, 'checkout'])->name('checkout');
+Route::post('/pesanan', [PesananController::class, 'store'])->name('pesanan.store');
 
-// Halaman menu
-Route::get('/menu/{meja_id}', [MenuController::class, 'index'])->name('menu.index');
-
-// Keranjang (session-based)
-Route::post('/keranjang/tambah', [PesananController::class, 'tambahKeranjang'])->name('keranjang.tambah');
-Route::post('/keranjang/hapus', [PesananController::class, 'hapusKeranjang'])->name('keranjang.hapus');
-Route::post('/keranjang/update', [PesananController::class, 'updateKeranjang'])->name('keranjang.update');
-Route::get('/keranjang', [PesananController::class, 'keranjang'])->name('keranjang.index');
-
-// Checkout & simpan pesanan
-Route::get('/checkout/{meja_id}', [PesananController::class, 'checkout'])->name('checkout.index');
-Route::post('/checkout/simpan', [PesananController::class, 'simpanPesanan'])->name('checkout.simpan');
-
-// Tracking pesanan
-Route::get('/tracking/{kode_pesanan}', [PesananController::class, 'tracking'])->name('tracking.index');
+// Status Tracking Pesanan Pelanggan
+Route::get('/tracking/{id}', [PesananController::class, 'tracking'])->name('tracking');

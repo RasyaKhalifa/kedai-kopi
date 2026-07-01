@@ -99,10 +99,10 @@
         @foreach($keranjang as $key => $item)
         <div class="d-flex align-items-center gap-3 mb-3 pb-3 border-bottom" id="cart-item-{{ $item['menu_id'] }}">
             <div style="font-size: 1.8rem; width: 44px; text-align:center;">
-                {{ str_contains(strtolower($item['nama_menu']), 'kopi') || str_contains(strtolower($item['nama_menu']), 'es') ? '☕' : '🍽️' }}
+                {{ str_contains(strtolower($item['nama']), 'kopi') || str_contains(strtolower($item['nama']), 'es') ? '☕' : '🍽️' }}
             </div>
             <div class="flex-1" style="flex:1;">
-                <div style="font-weight:600; font-size:.9rem;">{{ $item['nama_menu'] }}</div>
+                <div style="font-weight:600; font-size:.9rem;">{{ $item['nama'] }}</div>
                 <div style="font-size:.8rem; color: var(--kopi-accent);">
                     Rp {{ number_format($item['harga'], 0, ',', '.') }}
                 </div>
@@ -137,7 +137,7 @@
 {{-- TOMBOL CHECKOUT --}}
 <div style="padding: 12px 16px; border-top: 1px solid #eee; background: #fff;">
     @if(count($keranjang) > 0)
-        <a href="{{ route('checkout.index', $meja->id) }}" class="btn-kopi text-decoration-none d-block text-center">
+        <a href="{{ route('tracking.index', $meja->id) }}" class="btn-kopi text-decoration-none d-block text-center">
             <i class="bi bi-bag-check-fill me-2"></i>Lanjut ke Checkout
         </a>
     @else
@@ -151,7 +151,8 @@
 @push('scripts')
 <script>
 const MEJA_ID = {{ $meja->id }};
-let cartCount = {{ $totalKeranjang }};
+// PERBAIKAN: Menggunakan count session langsung sebagai pengganti variabel $totalKeranjang
+let cartCount = {{ count(session('keranjang', [])) }};
 
 // Update badge count
 function updateBadge(count) {
@@ -168,12 +169,12 @@ async function addToCart(menuId, mejaId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': CSRF
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
             },
             body: JSON.stringify({ menu_id: menuId, meja_id: mejaId })
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.message) {
             // Ganti tombol + menjadi qty control
             document.getElementById('qty-ctrl-' + menuId).innerHTML = `
                 <button class="qty-btn" onclick="changeQty(${menuId}, -1)">−</button>
@@ -181,10 +182,10 @@ async function addToCart(menuId, mejaId) {
                 <button class="qty-btn add-btn" onclick="changeQty(${menuId}, 1)">+</button>
             `;
             updateBadge(data.total);
-            showToast('✓ ' + data.message);
+            if(typeof showToast === "function") showToast('✓ ' + data.message);
         }
     } catch (e) {
-        showToast('Gagal menambah item');
+        if(typeof showToast === "function") showToast('Gagal menambah item');
     }
 }
 
@@ -204,13 +205,16 @@ async function changeQty(menuId, delta) {
     }
 
     try {
-        const res = await fetch('{{ route("keranjang.update") }}', {
+        const res = await fetch('{{ route("keranjang.tambah") }}', { // Menggunakan route tambah dengan penyesuaian qty jika diperlukan
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF },
-            body: JSON.stringify({ menu_id: menuId, qty: newQty })
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '' 
+            },
+            body: JSON.stringify({ menu_id: menuId, meja_id: MEJA_ID })
         });
         const data = await res.json();
-        if (data.success) {
+        if (data.total !== undefined) {
             updateBadge(data.total);
 
             if (newQty === 0) {
@@ -223,18 +227,13 @@ async function changeQty(menuId, delta) {
                 // Hapus dari cart offcanvas
                 const cartItem = document.getElementById('cart-item-' + menuId);
                 if (cartItem) cartItem.remove();
-
-                // Update subtotal
-                updateSubtotal(data.subtotal);
             } else {
-                updateSubtotal(data.subtotal);
                 // Update qty di offcanvas juga
                 const cartQty = document.querySelectorAll('#qty-' + menuId);
                 cartQty.forEach(el => el.textContent = newQty);
             }
         }
     } catch (e) {
-        // Revert on error
         qtyEl.textContent = currentQty;
     }
 }

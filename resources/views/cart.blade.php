@@ -1,72 +1,104 @@
-@extends('layouts.app')
-
-@section('title', 'Keranjang - Kedai Kopi')
-@section('header', 'Keranjang')
-@section('back', route('menu.show', $meja->id ?? 1))
-
-@section('content')
-
-@if(empty($keranjang))
-    <div style="text-align:center;padding:60px 0;">
-        <div style="font-size:3rem;margin-bottom:10px;">🛒</div>
-        <p class="muted">Keranjangmu masih kosong.</p>
-        <a href="{{ route('menu.show', $meja->id ?? 1) }}" class="btn" style="margin-top:16px;">Lihat Menu</a>
-    </div>
-@else
-    <div style="display:flex;flex-direction:column;gap:12px;">
-        @foreach($keranjang as $itemId => $item)
-            <div class="card" style="display:flex;gap:12px;align-items:center;">
-                <img src="{{ $item['gambar'] ? asset('storage/'.$item['gambar']) : 'https://via.placeholder.com/70' }}"
-                     style="width:64px;height:64px;border-radius:10px;object-fit:cover;">
-
-                <div style="flex:1;">
-                    <h4>{{ $item['nama'] }}</h4>
-                    <span class="muted">Rp{{ number_format($item['harga'], 0, ',', '.') }}</span>
-                </div>
-
-                {{-- Ubah jumlah --}}
-                <form action="{{ route('cart.update') }}" method="POST" style="display:flex;align-items:center;gap:8px;">
-                    @csrf
-                    <input type="hidden" name="menu_id" value="{{ $itemId }}">
-                    <button type="submit" name="aksi" value="kurang"
-                            class="btn-outline" style="width:30px;height:30px;border-radius:8px;border-color:rgba(255,255,255,0.2);color:#fff;">-</button>
-                    <span style="min-width:18px;text-align:center;">{{ $item['qty'] }}</span>
-                    <button type="submit" name="aksi" value="tambah"
-                            class="btn-outline" style="width:30px;height:30px;border-radius:8px;border-color:rgba(255,255,255,0.2);color:#fff;">+</button>
-                </form>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Keranjang Belanja 🛒</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container my-5">
+    <div class="card shadow-sm border-0 p-4">
+        <h2 class="mb-4 fw-bold"><a href="{{ route('menu.index') }}" class="btn btn-outline-secondary me-2"><i class="bi bi-arrow-left"></i></a> Keranjang Anda</h2>
+        
+        @if(session('cart') && count(session('cart')) > 0)
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Menu</th>
+                            <th>Harga</th>
+                            <th>Jumlah</th>
+                            <th>Subtotal</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @php $total = 0; @endphp
+                        @foreach($cart as $id => $details)
+                            @php $total += $details['harga'] * $details['jumlah'] @endphp
+                            <tr data-id="{{ $id }}">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="{{ asset('img/' . $details['foto']) }}" width="50" height="50" class="rounded me-3" style="object-fit: cover">
+                                        <span class="fw-bold">{{ $details['nama_menu'] }}</span>
+                                    </div>
+                                </td>
+                                <td>Rp {{ number_format($details['harga'], 0, ',', '.') }}</td>
+                                <td>
+                                    <input type="number" value="{{ $details['jumlah'] }}" class="form-control quantity update-cart" min="1" style="width: 80px;">
+                                </td>
+                                <td>Rp {{ number_format($details['harga'] * $details['jumlah'], 0, ',', '.') }}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm remove-from-cart"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-        @endforeach
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <h4>Total: <span class="fw-bold text-success">Rp {{ number_format($total, 0, ',', '.') }}</span></h4>
+                <a href="{{ route('checkout') }}" class="btn btn-warning btn-lg px-4 fw-bold text-white shadow-sm">Lanjut Checkout</a>
+            </div>
+        @else
+            <div class="text-center py-5">
+                <i class="bi bi-cart-x text-muted" style="font-size: 4rem;"></i>
+                <p class="mt-3 text-muted">Keranjang Anda masih kosong.</p>
+                <a href="{{ route('menu.index') }}" class="btn btn-primary">Lihat Menu</a>
+            </div>
+        @endif
     </div>
+</div>
 
-    <div class="card" style="margin-top:18px;">
-        <label class="muted" style="display:block;margin-bottom:6px;">Catatan untuk dapur (opsional)</label>
-        <form action="{{ route('cart.catatan') }}" method="POST">
-            @csrf
-            <textarea name="catatan" rows="2" placeholder="Contoh: gula sedikit, pedas sedang..."
-                style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.15);
-                       background:rgba(0,0,0,0.25);color:var(--text-light);margin-bottom:10px;">{{ session('catatan') }}</textarea>
-            <button type="submit" class="btn btn-outline" style="width:100%;">Simpan Catatan</button>
-        </form>
-    </div>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+    // Script AJAX untuk update jumlah item
+    $(".update-cart").change(function (e) {
+        e.preventDefault();
+        var ele = $(this);
+        $.ajax({
+            url: '{{ route("cart.update") }}',
+            method: "patch",
+            data: {
+                _token: '{{ csrf_token() }}', 
+                id: ele.parents("tr").attr("data-id"), 
+                jumlah: ele.parents("tr").find(".quantity").val()
+            },
+            success: function (response) {
+               window.location.reload();
+            }
+        });
+    });
 
-    <div class="card" style="margin-top:18px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-            <span class="muted">Subtotal</span>
-            <span>Rp{{ number_format($total, 0, ',', '.') }}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:1.1rem;">
-            <span>Total</span>
-            <span style="color:var(--accent-light);">Rp{{ number_format($total, 0, ',', '.') }}</span>
-        </div>
-    </div>
-@endif
-@endsection
-
-@section('bottom')
-    @if(!empty($keranjang))
-        <div class="bottom-cart-bar">
-            <span class="muted">Total: Rp{{ number_format($total, 0, ',', '.') }}</span>
-            <a href="{{ route('checkout.show') }}" class="btn btn-block">Checkout</a>
-        </div>
-    @endif
-@endsection
+    // Script AJAX untuk hapus item
+    $(".remove-from-cart").click(function (e) {
+        e.preventDefault();
+        var ele = $(this);
+        if(confirm("Apakah kamu yakin ingin menghapus item ini?")) {
+            $.ajax({
+                url: '{{ route("cart.remove") }}',
+                method: "DELETE",
+                data: {
+                    _token: '{{ csrf_token() }}', 
+                    id: ele.parents("tr").attr("data-id")
+                },
+                success: function (response) {
+                    window.location.reload();
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>

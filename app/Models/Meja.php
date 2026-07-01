@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Meja extends Model
 {
-    protected $fillable = ['nomor_meja', 'kode_qr', 'status'];
+    protected $fillable = ['nomor_meja', 'kode_qr', 'status_meja'];
 }

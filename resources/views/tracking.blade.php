@@ -1,179 +1,93 @@
-@extends('layouts.customer')
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status Pesanan #{{ $pesanan->id }} 🕦</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --kopi-espresso: #2C1810;
+            --kopi-medium: #6F4E37;
+            --kopi-latte: #C9A87C;
+            --kopi-accent: #E07B39;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f5f0;
+            color: var(--kopi-espresso);
+        }
+        .card-tracking {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        .badge-status {
+            font-size: 1.1rem;
+            padding: 10px 20px;
+            border-radius: 50px;
+        }
+        .bg-pending { background-color: #ffc107; color: #000; }
+        .bg-memasak { background-color: #17a2b8; color: #fff; }
+        .bg-selesai { background-color: #28a745; color: #fff; }
+        .bg-dibatalkan { background-color: #dc3545; color: #fff; }
+    </style>
+</head>
+<body>
 
-@section('title', 'Tracking — ' . $pesanan->kode_pesanan)
-
-@section('content')
-
-{{-- HEADER --}}
-<div style="background: linear-gradient(135deg, var(--kopi-espresso) 0%, var(--kopi-medium) 100%); padding: 24px 20px 20px; color: var(--kopi-cream); text-align: center;">
-    <div style="font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">
-        Status Pesanan
-    </div>
-    <div style="font-size: .8rem; opacity: .7; margin-bottom: 12px;">Meja {{ $pesanan->meja->nomor_meja }}</div>
-
-    {{-- KODE PESANAN --}}
-    <div style="background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px 20px; display: inline-block;">
-        <div style="font-size: .72rem; opacity: .7; margin-bottom: 2px; letter-spacing: .08em;">KODE PESANAN</div>
-        <div style="font-size: 1.1rem; font-weight: 700; letter-spacing: .15em; font-family: monospace;">
-            {{ $pesanan->kode_pesanan }}
+<div class="container my-5" style="max-width: 600px;">
+    <div class="card p-4 card-tracking text-center bg-white">
+        
+        <div class="mb-3 text-success">
+            <i class="bi bi-check-circle-fill" style="font-size: 4rem; color: var(--kopi-accent);"></i>
         </div>
+
+        <h3 class="fw-bold">Terima Kasih, {{ $pesanan->pelanggan->nama }}!</h3>
+        <p class="text-muted">Pesanan Anda berhasil dikirim ke sistem dapur.</p>
+        <hr class="my-4" style="border-top: 2px dashed #ddd;">
+        
+        <div class="my-4">
+            <h5 class="fw-bold text-muted mb-2">Status Pesanan:</h5>
+            @if($pesanan->status_pesanan == 'Pending')
+                <span class="badge bg-pending badge-status shadow-sm"><i class="bi bi-hourglass-split me-1"></i> Menunggu Konfirmasi</span>
+            @elseif($pesanan->status_pesanan == 'Memasak')
+                <span class="badge bg-memasak badge-status shadow-sm"><i class="bi bi-fire me-1"></i> Sedang Dimasak Barista</span>
+            @elseif($pesanan->status_pesanan == 'Selesai')
+                <span class="badge bg-selesai badge-status shadow-sm"><i class="bi bi-cup-hot-fill me-1"></i> Siap Diambil / Diantar</span>
+            @else
+                <span class="badge bg-dibatalkan badge-status shadow-sm"><i class="bi bi-x-circle me-1"></i> Pesanan Dibatalkan</span>
+            @endif
+        </div>
+
+        <div class="card p-3 text-start mb-4 border-0" style="background-color: #fcfbf9; border-left: 5px solid var(--kopi-medium) !important;">
+            <p class="mb-2"><strong><i class="bi bi-geo-alt-fill me-1"></i> No. Meja:</strong> <span class="badge bg-dark">{{ $pesanan->meja->nomor_meja }}</span></p>
+            <p class="mb-2"><strong><i class="bi bi-clock me-1"></i> Waktu Pesan:</strong> {{ \Carbon\Carbon::parse($pesanan->tanggal_pesanan)->format('H:i') }} WIB</p>
+            <p class="mb-0"><strong><i class="bi bi-wallet2 me-1"></i> Total Bayar:</strong> <span class="text-success fw-bold">Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}</span></p>
+        </div>
+
+        <div class="text-start mb-4">
+            <h6 class="fw-bold text-muted mb-3">Detail Item:</h6>
+            <ul class="list-group list-group-flush small">
+                @foreach($pesanan->detailPesanan as $detail)
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent">
+                        <div>
+                            {{ $detail->menu->nama_menu }}
+                            <span class="text-muted">x{{ $detail->jumlah }}</span>
+                        </div>
+                        <span class="fw-bold">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</span>
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+
+        <a href="{{ route('menu.index') }}" class="btn w-100 py-2 fw-bold text-white shadow-sm" style="background-color: var(--kopi-espresso);">
+            <i class="bi bi-house-door me-1"></i> Kembali ke Beranda Menu
+        </a>
     </div>
 </div>
 
-<div style="padding: 20px;">
-
-    {{-- STATUS BADGE --}}
-    @php
-        $statusMap = [
-            'pending'  => ['label' => 'Menunggu Konfirmasi', 'icon' => 'hourglass-split',    'class' => 'badge-pending'],
-            'memasak'  => ['label' => 'Sedang Dimasak',      'icon' => 'fire',                'class' => 'badge-memasak'],
-            'selesai'  => ['label' => 'Siap Disajikan',      'icon' => 'check-circle-fill',   'class' => 'badge-selesai'],
-            'dibayar'  => ['label' => 'Lunas',               'icon' => 'receipt-cutoff',      'class' => 'badge-dibayar'],
-            'batal'    => ['label' => 'Dibatalkan',          'icon' => 'x-circle-fill',       'class' => 'badge-batal'],
-        ];
-        $s = $statusMap[$pesanan->status] ?? $statusMap['pending'];
-    @endphp
-
-    <div style="text-align: center; margin-bottom: 28px;">
-        <div class="d-inline-flex align-items-center gap-2 px-4 py-2 rounded-pill {{ $s['class'] }}"
-             style="font-size: 1rem; font-weight: 700; border-radius: 30px !important; padding: 10px 24px !important;">
-            <i class="bi bi-{{ $s['icon'] }}"></i>
-            {{ $s['label'] }}
-        </div>
-    </div>
-
-    {{-- TIMELINE STATUS --}}
-    <div class="section-title">Perjalanan Pesanan</div>
-    <div class="timeline mb-4">
-
-        {{-- PENDING --}}
-        <div class="timeline-item">
-            <div class="timeline-dot {{ in_array($pesanan->status, ['pending','memasak','selesai','dibayar']) ? 'done' : '' }}">
-                <i class="bi bi-check"></i>
-            </div>
-            <div class="timeline-label">Pesanan Diterima</div>
-            <div class="timeline-sub">Pesananmu sudah masuk ke dapur</div>
-        </div>
-
-        {{-- MEMASAK --}}
-        <div class="timeline-item">
-            <div class="timeline-dot
-                {{ $pesanan->status === 'memasak' ? 'active' : '' }}
-                {{ in_array($pesanan->status, ['selesai','dibayar']) ? 'done' : '' }}">
-                <i class="bi bi-{{ $pesanan->status === 'memasak' ? 'fire' : 'check' }}"></i>
-            </div>
-            <div class="timeline-label" style="{{ $pesanan->status === 'pending' ? 'color:#bbb;' : '' }}">
-                Sedang Dimasak
-            </div>
-            <div class="timeline-sub" style="{{ $pesanan->status === 'pending' ? 'color:#ddd;' : '' }}">
-                Dapur sedang menyiapkan pesananmu
-            </div>
-        </div>
-
-        {{-- SELESAI --}}
-        <div class="timeline-item">
-            <div class="timeline-dot
-                {{ $pesanan->status === 'selesai' ? 'active' : '' }}
-                {{ $pesanan->status === 'dibayar' ? 'done' : '' }}">
-                <i class="bi bi-{{ in_array($pesanan->status, ['selesai','dibayar']) ? 'check' : 'cup-hot' }}"></i>
-            </div>
-            <div class="timeline-label" style="{{ in_array($pesanan->status, ['pending','memasak']) ? 'color:#bbb;' : '' }}">
-                Siap Disajikan
-            </div>
-            <div class="timeline-sub" style="{{ in_array($pesanan->status, ['pending','memasak']) ? 'color:#ddd;' : '' }}">
-                Pesanan siap di meja kamu
-            </div>
-        </div>
-
-        {{-- DIBAYAR --}}
-        <div class="timeline-item">
-            <div class="timeline-dot {{ $pesanan->status === 'dibayar' ? 'done' : '' }}">
-                <i class="bi bi-check"></i>
-            </div>
-            <div class="timeline-label" style="{{ $pesanan->status !== 'dibayar' ? 'color:#bbb;' : '' }}">
-                Pembayaran Selesai
-            </div>
-            <div class="timeline-sub" style="{{ $pesanan->status !== 'dibayar' ? 'color:#ddd;' : '' }}">
-                Bayar di kasir ya!
-            </div>
-        </div>
-    </div>
-
-    {{-- DETAIL PESANAN --}}
-    <div class="section-title">Detail Pesanan</div>
-
-    <div style="background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(44,24,16,.08); margin-bottom: 20px;">
-        @foreach($pesanan->detailPesanans as $detail)
-        <div class="d-flex align-items-center gap-3 px-4 py-3 border-bottom">
-            <div style="font-size: 1.3rem; width: 32px; text-align: center;">
-                {{ str_contains(strtolower($detail->menu->nama_menu ?? ''), 'kopi') || str_contains(strtolower($detail->menu->nama_menu ?? ''), 'es') ? '☕' : '🍽️' }}
-            </div>
-            <div style="flex: 1;">
-                <div style="font-weight: 600; font-size: .9rem;">{{ $detail->menu->nama_menu ?? 'Menu dihapus' }}</div>
-                @if($detail->catatan)
-                    <div style="font-size: .75rem; color: #999; font-style: italic;">{{ $detail->catatan }}</div>
-                @endif
-            </div>
-            <div style="text-align: right;">
-                <div style="font-size: .78rem; color: #999;">× {{ $detail->qty }}</div>
-                <div style="font-weight: 700; font-size: .88rem; color: var(--kopi-accent);">
-                    Rp {{ number_format($detail->subtotal, 0, ',', '.') }}
-                </div>
-            </div>
-        </div>
-        @endforeach
-
-        <div class="d-flex justify-content-between align-items-center px-4 py-3" style="background: var(--kopi-cream);">
-            <span style="font-weight: 700;">Total</span>
-            <span style="font-weight: 700; color: var(--kopi-accent); font-size: 1rem;">
-                Rp {{ number_format($pesanan->total_harga, 0, ',', '.') }}
-            </span>
-        </div>
-    </div>
-
-    {{-- INFO PELANGGAN --}}
-    <div style="background: #fff; border-radius: 16px; padding: 16px 20px; box-shadow: 0 2px 8px rgba(44,24,16,.08); margin-bottom: 24px;">
-        <div class="d-flex justify-content-between mb-2">
-            <span style="font-size: .83rem; color: #888;">Nama</span>
-            <span style="font-size: .83rem; font-weight: 600;">{{ $pesanan->nama_pelanggan }}</span>
-        </div>
-        <div class="d-flex justify-content-between mb-2">
-            <span style="font-size: .83rem; color: #888;">Meja</span>
-            <span style="font-size: .83rem; font-weight: 600;">{{ $pesanan->meja->nomor_meja }}</span>
-        </div>
-        @if($pesanan->catatan_umum)
-        <div class="d-flex justify-content-between">
-            <span style="font-size: .83rem; color: #888;">Catatan</span>
-            <span style="font-size: .83rem; font-weight: 600; text-align: right; max-width: 60%;">{{ $pesanan->catatan_umum }}</span>
-        </div>
-        @endif
-    </div>
-
-    {{-- AUTO REFRESH INFO --}}
-    @if(!in_array($pesanan->status, ['selesai', 'dibayar', 'batal']))
-    <div style="background: #EFF6FF; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
-        <div class="spinner-border spinner-border-sm" style="color: var(--kopi-medium); flex-shrink:0;"></div>
-        <div style="font-size: .8rem; color: #1E40AF;">
-            Halaman akan diperbarui otomatis setiap 15 detik
-        </div>
-    </div>
-    @endif
-
-    {{-- TOMBOL PESAN LAGI --}}
-    @if(in_array($pesanan->status, ['selesai', 'dibayar']))
-    <a href="{{ route('menu.index', $pesanan->meja->id) }}" class="btn-kopi text-decoration-none d-block text-center">
-        <i class="bi bi-arrow-repeat me-2"></i>Pesan Lagi
-    </a>
-    @endif
-
-</div>
-@endsection
-
-@push('scripts')
-<script>
-    @if(!in_array($pesanan->status, ['selesai', 'dibayar', 'batal']))
-    // Auto refresh setiap 15 detik
-    setTimeout(() => { location.reload(); }, 15000);
-    @endif
-</script>
-@endpush
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
