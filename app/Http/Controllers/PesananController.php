@@ -67,7 +67,7 @@ class PesananController extends Controller
         return view('checkout', compact('cart'));
     }
 
-    public function store(Request $request)
+   public function store(Request $request)
     {
         $request->validate([
             'nama_pelanggan' => 'required|string|max:255',
@@ -79,12 +79,19 @@ class PesananController extends Controller
             return redirect()->route('menu.index')->with('error', 'Keranjang kosong!');
         }
 
+        // Ambil data meja asli
         $meja = Meja::where('nomor_meja', $request->nomor_meja)->first();
         if (!$meja) {
             return redirect()->back()->with('error', 'Nomor meja tidak valid!');
         }
 
-        // 1. Simpan Data Pelanggan (Menyertakan no_hp bernilai default '-')
+        // PROTEKSI GANDA: Cek jika meja sudah terisi oleh pelanggan lain sebelum order diproses
+        // Gunakan strcasecmp agar pengecekan string 'Terisi' tidak sensitif huruf besar/kecil
+        if (strcasecmp($meja->status_meja, 'Terisi') === 0 || strcasecmp($meja->status_meja, 'Penuh') === 0) {
+            return redirect()->route('menu.index')->with('error', 'Maaf, Meja ' . $meja->nomor_meja . ' baru saja terisi. Silakan hubungi kasir.');
+        }
+
+        // 1. Simpan Data Pelanggan
         $pelanggan = Pelanggan::create([
             'nama'  => $request->nama_pelanggan,
             'no_hp' => '-'
@@ -97,8 +104,8 @@ class PesananController extends Controller
 
         // 2. Simpan ke tabel induk pesanans
         $pesanan = Pesanan::create([
-            'meja_id'           => $meja->id,
-            'pelanggan_id'       => $pelanggan->id,
+            'meja_id'           => $meja->id, // Sudah dipastikan mencatat ID asli meja
+            'pelanggan_id'      => $pelanggan->id,
             'admin_id'          => null,
             'tanggal_pesanan'   => Carbon::now(),
             'total_harga'       => $total,
@@ -107,7 +114,7 @@ class PesananController extends Controller
             'metode_pembayaran' => null
         ]);
 
-        // 3. Looping untuk simpan ke tabel detail_pesanans (Menerima kolom harga)
+        // 3. Looping untuk simpan ke tabel detail_pesanans
         foreach($cart as $id => $details) {
             DetailPesanan::create([
                 'pesanan_id' => $pesanan->id,
@@ -118,9 +125,10 @@ class PesananController extends Controller
             ]);
         }
 
-        // 4. Update status meja menjadi 'Terisi'
+        // 4. JALUR AMAN: Update status meja menjadi 'Terisi' langsung di database
         $meja->update(['status_meja' => 'Terisi']);
 
+        // Hapus keranjang belanja di sesi setelah sukses order
         session()->forget('cart');
 
         return redirect()->route('tracking', ['id' => $pesanan->id])->with('success', 'Pesanan sukses dibuat!');

@@ -16,4 +16,9 @@ class DetailPesanan extends Model
     {
         return $this->belongsTo(Menu::class, 'menu_id');
     }
+
+    public function pesanan()
+    {
+        return $this->belongsTo(Pesanan::class, 'pesanan_id');
+    }
 }
